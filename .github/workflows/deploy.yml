@@ -1,0 +1,15 @@
+name: 1 - Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Deploy Full Stack from Local VM Directory
+        run: |
+          cd ~/Desktop/ShadowNet
+          docker compose up -d --build

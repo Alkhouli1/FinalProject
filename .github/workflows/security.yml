@@ -1,0 +1,38 @@
+name: 2 - Security Scanning Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  security-scans:
+    runs-on: self-hosted
+    steps:
+      - name: TruffleHog (Secret Scanning)
+        run: |
+          cd ~/Desktop/ShadowNet
+          docker run --rm -v $(pwd):/pwd trufflesecurity/trufflehog:latest filesystem /pwd
+
+      - name: Bandit (Python SAST)
+        run: |
+          cd ~/Desktop/ShadowNet
+          docker run --rm -v $(pwd):/workspace cytopia/bandit -r /workspace/backend
+
+      - name: Hadolint (Dockerfile Linting)
+        run: |
+          cd ~/Desktop/ShadowNet
+          docker run --rm -i hadolint/hadolint < backend/Dockerfile
+          docker run --rm -i hadolint/hadolint < frontend/Dockerfile
+
+      - name: Build Images for Vulnerability Scan
+        run: |
+          cd ~/Desktop/ShadowNet
+          docker build -t shadownet-backend:scan ./backend
+          docker build -t shadownet-frontend:scan ./frontend
+
+      - name: Trivy (Container CVE Scan - Backend)
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image shadownet-backend:scan
+
+      - name: Trivy (Container CVE Scan - Frontend)
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image shadownet-frontend:scan
